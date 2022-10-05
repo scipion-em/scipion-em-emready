@@ -26,11 +26,13 @@
 # **************************************************************************
 
 import os
-
 import pwem
+import shutil
 import pyworkflow as pw
 from pyworkflow.utils import Environ
+from scipion.install.funcs import VOID_TGZ
 from .constants import *
+
 __version__ = '0.0.1'
 
 
@@ -50,7 +52,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def getEnviron(cls):
-        """ Setup the environment variables needed to launch EmReady. """
+        """ Setup the environment variables needed to launch EMReady. """
         environ = Environ(os.environ)
 
         environ.update({
@@ -60,7 +62,7 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def getEmReadyEnvActivation(cls):
+    def getEMReadyEnvActivation(cls):
         activation = cls.getVar(EMREADY_ENV_ACTIVATION)
         scipionHome = pw.Config.SCIPION_HOME + os.path.sep
 
@@ -81,32 +83,32 @@ class Plugin(pwem.Plugin):
         return neededProgs
 
     @classmethod
-    def addEmReadyPackage(cls, env, version, default=False, pythonVersion='3.8'):
+    def defineBinaries(cls, env, pythonVersion='3.8'):
+        EMReady_commands = []
+        # Config conda env
+        EMReady_commands.append(('conda create -y -n %s -c conda-forge -c pytorch ' \
+                                 'python=%s pytorch==1.8.1 cudatoolkit=10.2 mrcfile numpy tqdm && touch emreadyEnv' \
+                                 % (DEFAULT_ENV_NAME, pythonVersion), 'emreadyEnv'))
+        EMReady_commands.append(("env_home=`conda info -e | awk '{if($1 == \"emreadyEnv\"){ if(NF == 2){print $2}else{print $3}}}'` && $env_home/bin/pip3 install einops timm", []))
 
-        installationCmd = cls.getCondaActivationCmd()
-        # Creating the environment
-        installationCmd += ' conda create -y -n %s -c conda-forge -c anaconda ' \
-                           'python=%s pytorch>1.6 mrcfile numpy tqdm' \
-                            % (DEFAULT_ENV_NAME, pythonVersion)
+        # Download sources codes from website
+        EMReady_commands.append(('wget -c http://huanglab.phys.hust.edu.cn/EMReady/EMReady_v1.0.tgz', 'EMReady_v1.0.tgz'))
+        EMReady_commands.append(('tar -xvf EMReady_v1.0.tgz', []))
+        EMReady_commands.append(('cd EMReady && f2py -c interp3d.f90 -m interp3d', [])) 
+        EMReady_commands.append(("cd EMReady && chmod u+rwx pred.py && env_home=`conda info -e | awk '{if($1 == \"emreadyEnv\"){ if(NF == 2){print $2}else{print $3}}}'` && sed -i \"1i #!$env_home/bin/python\" pred.py" , []))
+        env.addPackage('EMReady', version=__version__,
+                       commands=EMReady_commands,
+                       tar=VOID_TGZ,
+                       default=True)
 
-        emready_commands = [(installationCmd, [])]
-
-        env.addPackage('EMReady',
-                       version=version,
-                       #url='http://huanglab.phys.hust.edu.cn/EMReady/EMReady.tar',
-                       tar='EMReady.tgz',
-                       commands=emready_commands,
-                       neededProgs=cls.getDependencies(),
-                       default=default)
 
     @classmethod
-    def runEmReady(cls, protocol, program, args, cwd=None):
+    def runEMReady(cls, protocol, program, args, cwd=None):
         """ Run EMReady command from a given protocol. """
-        fullProgram = '%s %s && %s' % (cls.getCondaActivationCmd(),
-                                       cls.getEmReadyEnvActivation(),
-                                       program)
+        fullProgram = '%s' % (program)
         protocol.runJob(fullProgram, args, env=cls.getEnviron(), cwd=cwd,
                         numberOfMpi=1)
+
 
     @classmethod
     def getEMReadyModelStateDict10(cls):
@@ -115,9 +117,4 @@ class Plugin(pwem.Plugin):
     @classmethod
     def getEMReadyModelStateDict05(cls):
         return os.path.abspath(cls.getVar(EMREADY_MODEL_STATE_DICT_05_VAR))
-
-    @classmethod
-    def defineBinaries(cls, env):
-        cls.addEmReadyPackage(env, __version__,
-                              default=bool(cls.getCondaActivationCmd()))
 
