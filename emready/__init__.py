@@ -33,7 +33,7 @@ from pyworkflow.utils import Environ
 from scipion.install.funcs import VOID_TGZ
 from .constants import *
 
-__version__ = '0.0.1'
+__version__ = '3.0.0'
 
 
 class Plugin(pwem.Plugin):
@@ -42,13 +42,13 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def _defineVariables(cls):
-        emreadyHome = 'EMReady-%s' % __version__
-        cls._defineEmVar(EMREADY_HOME, emreadyHome)
+        default_emreadyHome = 'EMReady-%s' % DEFAULT_EMREADY_VERSION
+        cls._defineEmVar(EMREADY_HOME, default_emreadyHome)
         cls._defineVar(EMREADY_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
         cls._defineEmVar(EMREADY_MODEL_STATE_DICT_10_VAR,
-                         os.path.join(emreadyHome, EMREADY_MODEL_STATE_DICT_10))
+                         os.path.join(default_emreadyHome, EMREADY_MODEL_STATE_DICT_10))
         cls._defineEmVar(EMREADY_MODEL_STATE_DICT_05_VAR,
-                         os.path.join(emreadyHome, EMREADY_MODEL_STATE_DICT_05))
+                         os.path.join(default_emreadyHome, EMREADY_MODEL_STATE_DICT_05))
 
     @classmethod
     def getEnviron(cls):
@@ -63,10 +63,7 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def getEMReadyEnvActivation(cls):
-        activation = cls.getVar(EMREADY_ENV_ACTIVATION)
-        scipionHome = pw.Config.SCIPION_HOME + os.path.sep
-
-        return activation.replace(scipionHome, "", 1)
+        return cls.getVar(EMREADY_ENV_ACTIVATION)
 
     @classmethod
     def isVersionActive(cls):
@@ -83,20 +80,22 @@ class Plugin(pwem.Plugin):
         return neededProgs
 
     @classmethod
-    def defineBinaries(cls, env, pythonVersion='3.8'):
+    def defineBinaries(cls, env):
+
+        emReadyInstalled = "emready_installed.txt"
+        pythonVersion = "3.8"
         EMReady_commands = []
         # Config conda env
-        EMReady_commands.append(('conda create -y -n %s -c conda-forge -c pytorch ' \
-                                 'python=%s pytorch==1.8.1 cudatoolkit=10.2 mrcfile numpy tqdm && touch emreadyEnv' \
-                                 % (DEFAULT_ENV_NAME, pythonVersion), 'emreadyEnv'))
-        EMReady_commands.append(("env_home=`conda info -e | awk '{if($1 == \"emreadyEnv\"){ if(NF == 2){print $2}else{print $3}}}'` && $env_home/bin/pip3 install einops timm", []))
+        EMReady_commands.append(('%s conda create -y -n %s -c conda-forge -c pytorch ' \
+                                 'python=%s "pillow<7.0.0" pytorch==1.8.1 cudatoolkit=10.2 mrcfile numpy tqdm einops timm && '
+                                 'touch %s' \
+                                 % (cls.getCondaActivationCmd(), DEFAULT_ENV_NAME, pythonVersion, emReadyInstalled), [emReadyInstalled]))
 
         # Download sources codes from website
         EMReady_commands.append(('wget -c http://huanglab.phys.hust.edu.cn/EMReady/EMReady_v1.0.tgz', 'EMReady_v1.0.tgz'))
         EMReady_commands.append(('tar -xvf EMReady_v1.0.tgz', []))
-        EMReady_commands.append(('cd EMReady && f2py -c interp3d.f90 -m interp3d', [])) 
-        EMReady_commands.append(("cd EMReady && chmod u+rwx pred.py && env_home=`conda info -e | awk '{if($1 == \"emreadyEnv\"){ if(NF == 2){print $2}else{print $3}}}'` && sed -i \"1i #!$env_home/bin/python\" pred.py" , []))
-        env.addPackage('EMReady', version=__version__,
+        EMReady_commands.append(('cd EMReady && %s %s && f2py -c interp3d.f90 -m interp3d' % (cls.getCondaActivationCmd(), DEFAULT_ACTIVATION_CMD), []))
+        env.addPackage('EMReady', version=DEFAULT_EMREADY_VERSION,
                        commands=EMReady_commands,
                        tar=VOID_TGZ,
                        default=True)
@@ -105,7 +104,7 @@ class Plugin(pwem.Plugin):
     @classmethod
     def runEMReady(cls, protocol, program, args, cwd=None):
         """ Run EMReady command from a given protocol. """
-        fullProgram = '%s' % (program)
+        fullProgram = '%s %s && python %s' % (cls.getCondaActivationCmd(), cls.getEMReadyEnvActivation(), program)
         protocol.runJob(fullProgram, args, env=cls.getEnviron(), cwd=cwd,
                         numberOfMpi=1)
 

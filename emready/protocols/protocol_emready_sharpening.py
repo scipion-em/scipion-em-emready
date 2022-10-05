@@ -35,12 +35,17 @@ import os
 import re
 import emready
 from emready.constants import *
+import enum
+
+class EMReadyOutputs(enum.Enum):
+    sharpenedVolume = Volume
 
 class ProtEMReadySharppening(ProtAnalysis3D):
     """
     Wrapper protocol for the EMReady's to calculate the sharpened map.
     """
     _label = 'sharppening'
+    _possibleOutputs = EMReadyOutputs
 
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -109,7 +114,7 @@ class ProtEMReadySharppening(ProtAnalysis3D):
 
         out_vol.setFileName(self._getExtraPath('out.map'))
 
-        self._defineOutputs(outputVolume=out_vol)
+        self._defineOutputs(**{EMReadyOutputs.sharpenedVolume.name:out_vol})
         self._defineTransformRelation(self.in_vol, out_vol)
 
 
