@@ -120,10 +120,10 @@ class ProtEMReadySharppening(ProtAnalysis3D):
 
     def _validate(self):
         errors = []
-        if (48 < self.stride or self.stride < 10):
-            errors.append('`stride` should be within [10, 48].')
+        if (12 < self.stride < 48):
+            errors.append('`stride` should be within [12, 48].')
         elif (self.batch_size <= 0):
-            errors.append('`batch_size` should > 0.')
+            errors.append('`batch_size` should be greater than 0.')
         return errors
 
     def _summary(self):
