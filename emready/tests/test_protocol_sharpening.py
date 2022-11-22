@@ -47,13 +47,13 @@ class TestEMReadySharpening(BaseTest):
         logger.info(magentaStr("\nImporting Volumes:"))
 
         # Volume 1
-        pImpVolume = new(ProtImportVolumes, samplingRate=1,
+        pImpVolume = new(ProtImportVolumes, samplingRate=9.9,
                          filesPath=cls.dataSet.getFile('vol2'))
         launch(pImpVolume, wait=True)
         cls.inputVol = pImpVolume.outputVolume
 
         # Volume 2
-        pImpVolume2 = new(ProtImportVolumes, samplingRate=1,
+        pImpVolume2 = new(ProtImportVolumes, samplingRate=2,
                           filesPath=cls.dataSet.getFile('vol1'))
 
         launch(pImpVolume2, wait=True)
@@ -86,23 +86,26 @@ class TestEMReadySharpening(BaseTest):
         """
         logger.info(magentaStr("\n==> Testing EM ready:"))
 
-        def launchTest(label, vol,):
+        def launchTest(label, vol,expectedDimensions=(576, 576, 576)):
             logger.info(magentaStr("\nTest %s:" % label))
             emReadyProtocol = self.proj.newProtocol(ProtEMReadySharppening,
                                               objLabel='EMReady %s' % label,
-                                              in_vol=vol)
-            self.proj.launchProtocol(emReadyProtocol)
+                                              in_vol=vol,
+                                              batch_size=20,
+                                              stride=48)
+
+            self.launchProtocol(emReadyProtocol)
 
             outputVol = getattr(emReadyProtocol, EMReadyOutputs.sharpenedVolume.name)
             self.assertIsNotNone(outputVol,
                                  "Sharpened volume is None for %s test." % label)
 
-            self.assertEqual(self.inputVol.getDim(),
+            self.assertEqual(expectedDimensions,
                              outputVol.getDim(),
                              "sharpened Volume has different size than inputVol "
                              "for %s test" % label)
 
-            self.assertEqual(self.inputVol.getSamplingRate(),
+            self.assertEqual(1,
                              outputVol.getSamplingRate(),
                              "sharpened Volume has different sampling rate than "
                              "inputVol for %s test" % label)
@@ -111,4 +114,4 @@ class TestEMReadySharpening(BaseTest):
         launchTest('Vol 1', vol=self.inputVol)
 
         # vol 2
-        launchTest('convert inputVol', vol=self.inputVol2)
+        launchTest('convert inputVol', vol=self.inputVol2, expectedDimensions=(96, 96, 96))
