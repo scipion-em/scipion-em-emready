@@ -25,7 +25,7 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-
+from pwem.convert.headers import setMRCSamplingRate
 from pwem.objects import Volume
 import pyworkflow.protocol.params as params
 from pwem.protocols import ProtAnalysis3D
@@ -33,14 +33,22 @@ from pwem.emlib.image import ImageHandler
 
 import os
 import re
+
+from pyworkflow.utils import replaceBaseExt, getExt
+
 import emready
 from emready.constants import *
+import enum
+
+class EMReadyOutputs(enum.Enum):
+    sharpenedVolume = Volume
 
 class ProtEMReadySharppening(ProtAnalysis3D):
     """
     Wrapper protocol for the EMReady's to calculate the sharpened map.
     """
     _label = 'sharppening'
+    _possibleOutputs = EMReadyOutputs
 
     def _defineParams(self, form):
         form.addSection(label='Input')
@@ -68,23 +76,20 @@ class ProtEMReadySharppening(ProtAnalysis3D):
                         help='The step of the sliding window for cutting the input map into overlapping boxes. Its value should be an integer within [10,40]. The smaller, the better, if your computer memory is enough.')
 
 
-
     def _insertAllSteps(self):
-        self._insertFunctionStep(self.createConfigStep)
         self._insertFunctionStep(self.processStep)
         self._insertFunctionStep(self.createOutputStep)
 
-    def createConfigStep(self):
-        stride = self.stride
-        if self.use_gpu:
-            use_gpu = 'true'
-        else:
-            use_gpu = 'false'
-        gpu_id = self.gpu_id
-        batch_size = self.batch_size
-
     def processStep(self):
         loc_in_vol = os.path.abspath(self.in_vol.get().getFileName())
+
+        # Convert volume if not compatible
+        if getExt(loc_in_vol) != ".mrc":
+            mrcVol = os.path.abspath(self._getTmpPath(replaceBaseExt(loc_in_vol, "mrc")))
+            ImageHandler().convert(loc_in_vol, mrcVol)
+            setMRCSamplingRate(mrcVol, self.in_vol.get().getSamplingRate())
+
+            loc_in_vol = mrcVol
 
         # Commands to run EMReady prediction
         emready_src_home = emready.Plugin.getVar(EMREADY_HOME)
@@ -109,16 +114,16 @@ class ProtEMReadySharppening(ProtAnalysis3D):
 
         out_vol.setFileName(self._getExtraPath('out.map'))
 
-        self._defineOutputs(outputVolume=out_vol)
+        self._defineOutputs(**{EMReadyOutputs.sharpenedVolume.name:out_vol})
         self._defineTransformRelation(self.in_vol, out_vol)
 
 
     def _validate(self):
         errors = []
-        if (40 < self.stride or self.stride < 10):
-            errors.append('`stride` should be within [10, 40].')
+        if not (12 <= self.stride <= 48):
+            errors.append('`stride` should be within [12, 48].')
         elif (self.batch_size <= 0):
-            errors.append('`batch_size` should > 0.')
+            errors.append('`batch_size` should be greater than 0.')
         return errors
 
     def _summary(self):
