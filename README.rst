@@ -2,9 +2,7 @@
 EMReady plugin
 =================
 
-EMReady is a three-dimensional nested U-net-based framework for improving the
-interpretability of cryo-EM maps using similarity and correlation-guided deep
-learning.
+EMReady: Improvement of cryo-EM maps by simultaneous local and non-local deep learning.
 
 **Installing the plugin**
 =========================

@@ -1,8 +1,12 @@
 # **************************************************************************
 # *
-# * Authors: Yunior C. Fonseca Reyna    (cfonseca@cnb.csic.es)
+# * Authors: 
+# *    Jiahua He (d201880053@hust.edu.cn)
+# *    Tao Li (d202280084@hust.edu.cn)
+# *    Yunior C. Fonseca Reyna    (cfonseca@cnb.csic.es)
+# *    Sheng-You Huang (huangsy@hust.edu.cn)
 # *
-# *
+# * School of Physics, Huangzhong University of Science and Technology
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
@@ -51,17 +55,15 @@ with open('requirements.txt') as f:
 setup(
     name='scipion-em-emready',  # Required
     version=__version__,  # Required
-    description='EMReady is a three-dimensional nested U-net-based framework '
-                'for improving the interpretability of cryo-EM maps using '
-                'similarity and correlation-guided deep learning',  # Required
+    description='EMReady: Improvement of cryo-EM maps by simultaneous local and non-local deep learning',  # Required
 
     long_description=long_description,  # Optional
 
-    url='https://github.com/scipion-em/scipion-em-cryosparc2',  # Optional
+    url='https://github.com/scipion-em/scipion-em-emready',  # Optional
 
-    author='Yunior C. Fonseca Reyna, Jiahua He',  # Optional
+    author='Jiahua He, Tao Li, Yunior C. Fonseca Reyna, Sheng-You Huang',  # Optional
 
-    author_email='cfonseca@cnb.csic.es, huangsy@hust.edu.cn',  # Optional
+    author_email='d201880053@hust.edu.cn, d202280084@hust.edu.cn, cfonseca@cnb.csic.es, huangsy@hust.edu.cn',  # Optional
 
     classifiers=[  # Optional
         # How mature is this project? Common values are

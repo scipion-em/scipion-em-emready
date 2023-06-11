@@ -26,12 +26,25 @@
 # **************************************************************************
 
 # Root folder where EMREADY is installed, we will look here for the client
+
+# Variable names
 EMREADY_HOME = 'EMREADY_HOME'
-DEFAULT_ENV_NAME = 'emreadyEnv'
-DEFAULT_ACTIVATION_CMD = 'conda activate ' + DEFAULT_ENV_NAME
 EMREADY_ENV_ACTIVATION = 'EMREADY_ENV_ACTIVATION'
+EMREADY_MODEL_STATE_DICT_10_VAR = 'EMREADY_MODEL_STATE_DICT_10_VAR'
+EMREADY_MODEL_STATE_DICT_05_VAR = 'EMREADY_MODEL_STATE_DICT_05_VAR'
 
 EMREADY_MODEL_STATE_DICT_10 = 'model_state_dict_10'
 EMREADY_MODEL_STATE_DICT_05 = 'model_state_dict_05'
-EMREADY_MODEL_STATE_DICT_10_VAR = 'EMREADY_MODEL_STATE_DICT_10_VAR'
-EMREADY_MODEL_STATE_DICT_05_VAR = 'EMREADY_MODEL_STATE_DICT_05_VAR'
+
+# Installation constants
+EMREADY_VERSION_1_0_0= "1.0.0"
+DEFAULT_EMREADY_VERSION = EMREADY_VERSION_1_0_0
+
+def getEnvName(version):
+    return 'emready-%s' % version
+
+DEFAULT_ENV_NAME = getEnvName(DEFAULT_EMREADY_VERSION)
+DEFAULT_ACTIVATION_CMD = 'conda activate ' + DEFAULT_ENV_NAME
+
+
+

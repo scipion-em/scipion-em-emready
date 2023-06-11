@@ -26,12 +26,14 @@
 # **************************************************************************
 
 import os
-
 import pwem
+import shutil
 import pyworkflow as pw
 from pyworkflow.utils import Environ
+from scipion.install.funcs import VOID_TGZ
 from .constants import *
-__version__ = '0.0.1'
+
+__version__ = '3.0.0'
 
 
 class Plugin(pwem.Plugin):
@@ -40,17 +42,17 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def _defineVariables(cls):
-        emreadyHome = 'EMReady-%s' % __version__
-        cls._defineEmVar(EMREADY_HOME, emreadyHome)
+        default_emreadyHome = 'EMReady-%s' % DEFAULT_EMREADY_VERSION
+        cls._defineEmVar(EMREADY_HOME, default_emreadyHome)
         cls._defineVar(EMREADY_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
         cls._defineEmVar(EMREADY_MODEL_STATE_DICT_10_VAR,
-                         os.path.join(emreadyHome, EMREADY_MODEL_STATE_DICT_10))
+                         os.path.join(default_emreadyHome, EMREADY_MODEL_STATE_DICT_10))
         cls._defineEmVar(EMREADY_MODEL_STATE_DICT_05_VAR,
-                         os.path.join(emreadyHome, EMREADY_MODEL_STATE_DICT_05))
+                         os.path.join(default_emreadyHome, EMREADY_MODEL_STATE_DICT_05))
 
     @classmethod
     def getEnviron(cls):
-        """ Setup the environment variables needed to launch EmReady. """
+        """ Setup the environment variables needed to launch EMReady. """
         environ = Environ(os.environ)
 
         environ.update({
@@ -60,11 +62,8 @@ class Plugin(pwem.Plugin):
         return environ
 
     @classmethod
-    def getEmReadyEnvActivation(cls):
-        activation = cls.getVar(EMREADY_ENV_ACTIVATION)
-        scipionHome = pw.Config.SCIPION_HOME + os.path.sep
-
-        return activation.replace(scipionHome, "", 1)
+    def getEMReadyEnvActivation(cls):
+        return cls.getVar(EMREADY_ENV_ACTIVATION)
 
     @classmethod
     def isVersionActive(cls):
@@ -81,32 +80,34 @@ class Plugin(pwem.Plugin):
         return neededProgs
 
     @classmethod
-    def addEmReadyPackage(cls, env, version, default=False, pythonVersion='3.8'):
+    def defineBinaries(cls, env):
 
-        installationCmd = cls.getCondaActivationCmd()
-        # Creating the environment
-        installationCmd += ' conda create -y -n %s -c conda-forge -c anaconda ' \
-                           'python=%s pytorch>1.6 mrcfile numpy tqdm' \
-                            % (DEFAULT_ENV_NAME, pythonVersion)
+        emReadyInstalled = "emready_installed.txt"
+        pythonVersion = "3.8"
+        EMReady_commands = []
+        # Config conda env
+        EMReady_commands.append(('%s conda create -y -n %s -c conda-forge -c pytorch ' \
+                                 'python=%s "pillow<7.0.0" pytorch==1.8.1 cudatoolkit=10.2 mrcfile numpy tqdm einops timm && '
+                                 'touch %s' \
+                                 % (cls.getCondaActivationCmd(), DEFAULT_ENV_NAME, pythonVersion, emReadyInstalled), [emReadyInstalled]))
 
-        emready_commands = [(installationCmd, [])]
+        # Download sources codes from website
+        EMReady_commands.append(('wget -c http://huanglab.phys.hust.edu.cn/EMReady/EMReady_v1.0.tgz', 'EMReady_v1.0.tgz'))
+        EMReady_commands.append(('tar -xvf EMReady_v1.0.tgz', []))
+        EMReady_commands.append(('cd EMReady && %s %s && f2py -c interp3d.f90 -m interp3d' % (cls.getCondaActivationCmd(), DEFAULT_ACTIVATION_CMD), []))
+        env.addPackage('EMReady', version=DEFAULT_EMREADY_VERSION,
+                       commands=EMReady_commands,
+                       tar=VOID_TGZ,
+                       default=True)
 
-        env.addPackage('EMReady',
-                       version=version,
-                       #url='http://huanglab.phys.hust.edu.cn/EMReady/EMReady.tar',
-                       tar='EMReady.tgz',
-                       commands=emready_commands,
-                       neededProgs=cls.getDependencies(),
-                       default=default)
 
     @classmethod
-    def runEmReady(cls, protocol, program, args, cwd=None):
+    def runEMReady(cls, protocol, program, args, cwd=None):
         """ Run EMReady command from a given protocol. """
-        fullProgram = '%s %s && %s' % (cls.getCondaActivationCmd(),
-                                       cls.getEmReadyEnvActivation(),
-                                       program)
+        fullProgram = '%s %s && python %s' % (cls.getCondaActivationCmd(), cls.getEMReadyEnvActivation(), program)
         protocol.runJob(fullProgram, args, env=cls.getEnviron(), cwd=cwd,
                         numberOfMpi=1)
+
 
     @classmethod
     def getEMReadyModelStateDict10(cls):
@@ -115,9 +116,4 @@ class Plugin(pwem.Plugin):
     @classmethod
     def getEMReadyModelStateDict05(cls):
         return os.path.abspath(cls.getVar(EMREADY_MODEL_STATE_DICT_05_VAR))
-
-    @classmethod
-    def defineBinaries(cls, env):
-        cls.addEmReadyPackage(env, __version__,
-                              default=bool(cls.getCondaActivationCmd()))
 
