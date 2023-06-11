@@ -11,7 +11,7 @@
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -40,7 +40,7 @@ from setuptools import setup, find_packages
 # To use a consistent encoding
 from codecs import open
 from os import path
-from emready  import __version__
+from emready import __version__
 
 here = path.abspath(path.dirname(__file__))
 
@@ -56,13 +56,9 @@ setup(
     name='scipion-em-emready',  # Required
     version=__version__,  # Required
     description='EMReady: Improvement of cryo-EM maps by simultaneous local and non-local deep learning',  # Required
-
     long_description=long_description,  # Optional
-
     url='https://github.com/scipion-em/scipion-em-emready',  # Optional
-
     author='Jiahua He, Tao Li, Yunior C. Fonseca Reyna, Sheng-You Huang',  # Optional
-
     author_email='d201880053@hust.edu.cn, d202280084@hust.edu.cn, cfonseca@cnb.csic.es, huangsy@hust.edu.cn',  # Optional
 
     classifiers=[  # Optional
@@ -70,7 +66,7 @@ setup(
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         #   'Intended Audience :: Users',
@@ -80,7 +76,7 @@ setup(
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 3.8'
+        'Programming Language :: Python :: 3'
     ],
 
     keywords='scipion electron-microscopy cryo-em structural-biology image-processing scipion-3.0 emready',  # Optional

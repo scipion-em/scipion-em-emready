@@ -1,12 +1,14 @@
 # Include the README
- include *.rst
+include *.rst
 
 # Include the license file
- include LICENSE
+include LICENSE
 
 # Include conf file
- include emready/protocols.conf
+include emready/protocols.conf
 
 # Include the requirement file
 include requirements.txt
 
+# Include the changelog
+include CHANGES.txt

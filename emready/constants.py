@@ -2,12 +2,11 @@
 # *
 # * Authors: Yunior C. Fonseca Reyna    (cfonseca@cnb.csic.es)
 # *
-# *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,26 +24,15 @@
 # *
 # **************************************************************************
 
-# Root folder where EMREADY is installed, we will look here for the client
-
-# Variable names
-EMREADY_HOME = 'EMREADY_HOME'
-EMREADY_ENV_ACTIVATION = 'EMREADY_ENV_ACTIVATION'
-EMREADY_MODEL_STATE_DICT_10_VAR = 'EMREADY_MODEL_STATE_DICT_10_VAR'
-EMREADY_MODEL_STATE_DICT_05_VAR = 'EMREADY_MODEL_STATE_DICT_05_VAR'
-
-EMREADY_MODEL_STATE_DICT_10 = 'model_state_dict_10'
-EMREADY_MODEL_STATE_DICT_05 = 'model_state_dict_05'
-
-# Installation constants
-EMREADY_VERSION_1_0_0= "1.0.0"
-DEFAULT_EMREADY_VERSION = EMREADY_VERSION_1_0_0
-
 def getEnvName(version):
     return 'emready-%s' % version
 
+
+EMREADY_HOME = 'EMREADY_HOME'
+EMREADY_ENV_ACTIVATION = 'EMREADY_ENV_ACTIVATION'
+V1_0 = "1.0"
+VERSIONS = [V1_0]
+DEFAULT_EMREADY_VERSION = VERSIONS[-1]
+
 DEFAULT_ENV_NAME = getEnvName(DEFAULT_EMREADY_VERSION)
 DEFAULT_ACTIVATION_CMD = 'conda activate ' + DEFAULT_ENV_NAME
-
-
-

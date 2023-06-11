@@ -1,15 +1,35 @@
-=================
+==============
 EMReady plugin
-=================
+==============
 
-EMReady: Improvement of cryo-EM maps by simultaneous local and non-local deep learning.
+`EMReady <http://huanglab.phys.hust.edu.cn/EMReady/>`_: Improvement of cryo-EM maps by simultaneous local and non-local deep learning.
 
-**Installing the plugin**
-=========================
+.. image:: https://img.shields.io/pypi/v/scipion-em-emready.svg
+        :target: https://pypi.python.org/pypi/scipion-em-emready
+        :alt: PyPI release
 
-In order to install the plugin follow these instructions:
+.. image:: https://img.shields.io/pypi/l/scipion-em-emready.svg
+        :target: https://pypi.python.org/pypi/scipion-em-emready
+        :alt: License
 
-**Install the plugin**
+.. image:: https://img.shields.io/pypi/pyversions/scipion-em-emready.svg
+        :target: https://pypi.python.org/pypi/scipion-em-emready
+        :alt: Supported Python versions
+
+.. image:: https://img.shields.io/sonar/quality_gate/scipion-em_scipion-em-emready?server=https%3A%2F%2Fsonarcloud.io
+        :target: https://sonarcloud.io/dashboard?id=scipion-em_scipion-em-emready
+        :alt: SonarCloud quality gate
+
+.. image:: https://img.shields.io/pypi/dm/scipion-em-emready
+        :target: https://pypi.python.org/pypi/scipion-em-emready
+        :alt: Downloads
+
+Installation
+-------------
+
+You will need to use 3.0+ version of Scipion to be able to run these protocols. To install the plugin, you have two options:
+
+a) Stable version
 
 .. code-block::
 
@@ -17,30 +37,55 @@ In order to install the plugin follow these instructions:
 
 or through the **plugin manager** by launching Scipion and following **Configuration** >> **Plugins**
 
+b) Developer's version
 
-**To install in development mode**
+   * download repository
 
-- Clone or download the plugin repository
+    .. code-block::
 
-.. code-block::
+        git clone -b devel https://github.com/scipion-em/scipion-em-emready.git
 
-          git clone https://github.com/scipion-em/scipion-em-emready.git
+   * install
 
-- Install the plugin in developer mode.
+    .. code-block::
 
-.. code-block::
+       scipion installp -p /path/to/scipion-em-emready --devel
 
-  scipion installp -p local/path/to/scipion-em-emready --devel
+EMReady software will be installed automatically with the plugin but you can also use an existing installation by providing *EMREADY_ENV_ACTIVATION* and *EMREADY_HOME* (see below).
 
-===============
-Buildbot status
-===============
+**Important:** you need to have conda (miniconda3 or anaconda3) pre-installed to use this program.
 
-Status devel version:
+Configuration variables
+-----------------------
+*CONDA_ACTIVATION_CMD*: If undefined, it will rely on conda command being in the
+PATH (not recommended), which can lead to execution problems mixing scipion
+python with conda ones. One example of this could can be seen below but
+depending on your conda version and shell you will need something different:
+CONDA_ACTIVATION_CMD = eval "$(/extra/miniconda3/bin/conda shell.bash hook)"
 
-.. image:: http://scipion-test.cnb.csic.es:9980/badges/emready_devel.svg
+*EMREADY_ENV_ACTIVATION* (default = conda activate emready-1.0):
+Command to activate the EMReady environment.
 
-Status production version:
+*EMREADY_HOME* (default = software/em/emready-1.0):
+Path with EMReady source code.
 
-.. image:: http://scipion-test.cnb.csic.es:9980/badges/emready_prod.svg
+Verifying
+---------
+To check the installation, simply run the following Scipion test:
 
+``scipion test emready.tests.test_protocol_sharpening.TestEMReadySharpening``
+
+Supported versions
+------------------
+
+1.0
+
+Protocols
+----------
+
+* sharpening
+
+References
+-----------
+
+1. He J, Li T, Huang S-Y. Improvement of cryo-EM maps by simultaneous local and non-local deep learning. Nature Communications, 2023; 14:3217.

@@ -1,14 +1,14 @@
 # **************************************************************************
 # *
-# * Authors: Yunior C. Fonseca Reyna    (cfonseca@cnb.csic.es)
+# * Authors: Yunior C. Fonseca Reyna    (cfonseca@cnb.csic.es) [1]
+# *          Jiahua He                  (d201880053@hust.edu.cn) [2]
 # *
-# * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
-# *
-# * Authors: Jiahua He                  (d201880053@hust.edu.cn)
+# * [1] Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
+# * [2] Sheng-You Huang and Huazhong University of Science and Technology
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -25,112 +25,129 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+
+import os
+
+from pyworkflow.constants import BETA
+import pyworkflow.protocol.params as params
+from pyworkflow.utils import replaceBaseExt, getExt, createAbsLink
 from pwem.convert.headers import setMRCSamplingRate
 from pwem.objects import Volume
-import pyworkflow.protocol.params as params
 from pwem.protocols import ProtAnalysis3D
 from pwem.emlib.image import ImageHandler
 
-import os
-import re
+from .. import Plugin
 
-from pyworkflow.utils import replaceBaseExt, getExt
 
-import emready
-from emready.constants import *
-import enum
+class ProtEMReadySharpening(ProtAnalysis3D):
+    """ Wrapper protocol for EMReady to calculate the sharpened map. """
+    _label = 'sharpening'
+    _devStatus = BETA
+    _OUTNAME = "sharpenedVolume"
+    _possibleOutputs = {_OUTNAME: Volume}
 
-class EMReadyOutputs(enum.Enum):
-    sharpenedVolume = Volume
-
-class ProtEMReadySharppening(ProtAnalysis3D):
-    """
-    Wrapper protocol for the EMReady's to calculate the sharpened map.
-    """
-    _label = 'sharppening'
-    _possibleOutputs = EMReadyOutputs
-
+    # --------------------------- DEFINE param functions ----------------------
     def _defineParams(self, form):
         form.addSection(label='Input')
+        form.addHidden(params.USE_GPU, params.BooleanParam,
+                       default=True,
+                       label="Use GPU for execution",
+                       help="This protocol has both CPU and GPU implementation. "
+                            "Select the one you want to use.")
+        form.addHidden(params.GPU_LIST, params.StringParam, default='0',
+                       label="Choose GPU IDs",
+                       help="GPU may have several cores. Set it to zero"
+                            " if you do not know what we are talking about."
+                            " First core index is 0, second 1 and so on."
+                            " You can use multiple GPUs - in that case"
+                            " set to i.e. *0 1 2*.")
 
-        form.addParam('use_gpu', params.BooleanParam, default=True,
-                        label="Use GPU(s)?",
-                        help='Whether run EMReady on GPU(s).')
-        form.addParam('gpu_id', params.StringParam, default='0',
-                        label='Choose GPU ID(s)', 
-                        help='IDs of GPU devices to run EMReady, e.g. "0" for GPU #0, and "2,3,6" for GPUs #2, #3, and #6.')
-        form.addParam('batch_size', params.IntParam, default=20,
-                        label='Batch size',
-                        help='Number of boxes input into EMReady in one batch. Users can adjust batch_size according to the VRAM of their GPU devices. Empirically, a GPU with 40 GB VRAM can afford a batch_size of 80.')
-
-
-        group = form.addGroup('Input')
-        group.addParam('in_vol', params.PointerParam, pointerClass='Volume',
+        form.addParam('input_vol', params.PointerParam, pointerClass='Volume',
                       important=True,
                       label="Input volume",
                       help='Provide the input volume to be sharpened.')
 
-        group = form.addGroup('Advanced params')
-        group.addParam('stride', params.IntParam, default=12,
-                        label='Stride for sliding window.',
-                        help='The step of the sliding window for cutting the input map into overlapping boxes. Its value should be an integer within [10,40]. The smaller, the better, if your computer memory is enough.')
+        form.addParam('batch_size', params.IntParam, default=10,
+                      label='Batch size',
+                      help="Number of boxes input into EMReady in one batch. "
+                           "Users can adjust batch_size according to the VRAM "
+                           "of their GPU devices. Empirically, a GPU with "
+                           "40 GB VRAM can afford a batch_size of 80.")
 
+        form.addParam('stride', params.IntParam, default=12,
+                      label='Stride for sliding window',
+                      help="The step of the sliding window for cutting the "
+                           "input map into overlapping boxes. Its value "
+                           "should be an integer within [10,40]. The smaller, "
+                           "the better, if your computer memory is enough.")
 
+    # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
         self._insertFunctionStep(self.processStep)
         self._insertFunctionStep(self.createOutputStep)
 
+    # --------------------------- STEPS functions -----------------------------
     def processStep(self):
-        loc_in_vol = os.path.abspath(self.in_vol.get().getFileName())
+        inputFn = self.input_vol.get().getFileName()
+        mrcFn = os.path.join(self._getTmpPath(), replaceBaseExt(inputFn, 'mrc'))
 
-        # Convert volume if not compatible
-        if getExt(loc_in_vol) != ".mrc":
-            mrcVol = os.path.abspath(self._getTmpPath(replaceBaseExt(loc_in_vol, "mrc")))
-            ImageHandler().convert(loc_in_vol, mrcVol)
-            setMRCSamplingRate(mrcVol, self.in_vol.get().getSamplingRate())
-
-            loc_in_vol = mrcVol
-
-        # Commands to run EMReady prediction
-        emready_src_home = emready.Plugin.getVar(EMREADY_HOME)
-        program = "%s/EMReady/pred.py" % (emready_src_home)
-
-        if self.use_gpu:
-            args = " -i {} -o out.map -g {} -b {} -s {} -m {}".format(loc_in_vol, self.gpu_id, self.batch_size, self.stride, emready_src_home + "/EMReady/model_state_dicts")
+        if getExt(inputFn) != ".mrc":
+            ImageHandler().convert(inputFn, mrcFn)
+            setMRCSamplingRate(mrcFn, self.input_vol.get().getSamplingRate())
         else:
-            args = " -i {} -o out.map --use_cpu -b {} -s {} -m {}".format(loc_in_col, self.batch_size, self.stride, emready_src_home + "/EMReady/model_state_dicts")
+            createAbsLink(os.path.abspath(inputFn), mrcFn)
 
-        emready.Plugin.runEMReady(self, program, args, cwd=self._getExtraPath())
+        args = [
+            f"-i {os.path.abspath(mrcFn)}",
+            "-o outputVol.mrc",
+            f"-b {self.batch_size}",
+            f"-s {self.stride}",
+            f"-m {self.getModelDir()}"
+        ]
 
+        if self.useGpu:
+            args.append(f'-g {self.gpuList.get().replace(" ", ",")}')
+        else:
+            args.append("--use_cpu")
+
+        program = Plugin.getHome("pred.py")
+        self.runJob(Plugin.getProgram(program), " ".join(args),
+                    env=Plugin.getEnviron(),
+                    cwd=self._getExtraPath())
 
     def createOutputStep(self):
-        '''Return processed map'''
+        """Return processed map"""
         out_vol = Volume()
-        in_apix = self.in_vol.get().getSamplingRate()
+        in_apix = self.input_vol.get().getSamplingRate()
         if in_apix >= 1.0:
             out_vol.setSamplingRate(1.0)
         else:
             out_vol.setSamplingRate(0.5)
 
-        out_vol.setFileName(self._getExtraPath('out.map'))
+        out_vol.setFileName(self._getExtraPath('outputVol.mrc'))
 
-        self._defineOutputs(**{EMReadyOutputs.sharpenedVolume.name:out_vol})
-        self._defineTransformRelation(self.in_vol, out_vol)
+        self._defineOutputs(**{self._OUTNAME: out_vol})
+        self._defineTransformRelation(self.input_vol, out_vol)
 
-
+    # --------------------------- INFO functions ------------------------------
     def _validate(self):
         errors = []
         if not (12 <= self.stride <= 48):
-            errors.append('`stride` should be within [12, 48].')
-        elif (self.batch_size <= 0):
-            errors.append('`batch_size` should be greater than 0.')
+            errors.append("Stride should be within [12, 48]")
+        if self.batch_size <= 0:
+            errors.append("Batch size should be greater than 0")
+
         return errors
 
     def _summary(self):
         summary = []
-        summary.append("Input volume : %s" % os.path.abspath(self.in_vol.get().getFileName()))
+        if not hasattr(self, self._OUTNAME):
+            summary.append("Output volume not ready yet.")
+        else:
+            summary.append('We obtained a locally sharpened volume from the %s'
+                           % self.getObjectTag('input_vol'))
         return summary
 
-    def _methods(self):
-        methods = []
-        return methods
+    # --------------------------- UTILS functions -----------------------------
+    def getModelDir(self):
+        return os.path.abspath(Plugin.getHome(f"model_state_dicts"))
