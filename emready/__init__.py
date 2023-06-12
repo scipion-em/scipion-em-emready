@@ -27,7 +27,6 @@
 import os
 import pwem
 from pyworkflow.utils import Environ
-from scipion.install.funcs import VOID_TGZ
 
 from .constants import *
 
@@ -96,7 +95,7 @@ class Plugin(pwem.Plugin):
         env.addPackage('emready', version=version,
                        commands=installCmds,
                        neededProgs=cls.getDependencies(),
-                       tar=VOID_TGZ,
+                       tar="void.tgz",
                        default=default)
 
     @classmethod
