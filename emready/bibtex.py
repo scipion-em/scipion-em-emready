@@ -1,13 +1,13 @@
+# coding: utf-8
 # **************************************************************************
 # *
 # * Authors: Yunior C. Fonseca Reyna    (cfonseca@cnb.csic.es)
-# *
 # *
 # * Unidad de  Bioinformatica of Centro Nacional de Biotecnologia , CSIC
 # *
 # * This program is free software; you can redistribute it and/or modify
 # * it under the terms of the GNU General Public License as published by
-# * the Free Software Foundation; either version 2 of the License, or
+# * the Free Software Foundation; either version 3 of the License, or
 # * (at your option) any later version.
 # *
 # * This program is distributed in the hope that it will be useful,
@@ -24,3 +24,19 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
+
+"""
+
+@article{He2023,
+  doi = {https://doi.org/10.1038/s41467-023-39031-1},
+  year = {2023},
+  month = {jun},
+  publisher = {Springer Science and Business Media {LLC}},
+  volume = {14},
+  number = {1},
+  author = {Jiahua He and Tao Li and Sheng-You Huang},
+  title = {Improvement of cryo-{EM} maps by simultaneous local and non-local deep learning},
+  journal = {Nature Communications}
+}
+
+"""
