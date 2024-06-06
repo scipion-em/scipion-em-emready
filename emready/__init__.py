@@ -87,8 +87,9 @@ class Plugin(pwem.Plugin):
 
             (f'{cls.getCondaActivationCmd()}'
              f'conda env create -n {ENV_NAME} -f environment.yml && '
-             f'{cls.getEMReadyEnvActivation()} && conda install -y -c conda-forge gfortran && '
-             f'f2py -c interp3d.f90 -m interp3d',
+             f'{cls.getEMReadyEnvActivation()} && conda install -y -c conda-forge gfortran libxcrypt && '
+             'export CPATH=$CONDA_PREFIX/include && '
+             'f2py -c interp3d.f90 -m interp3d',
              ['interp3d.cpython-38-x86_64-linux-gnu.so']),
         ]
 
