@@ -30,7 +30,7 @@ from pyworkflow.utils import Environ
 
 from .constants import *
 
-__version__ = '3.0'
+__version__ = '3.0.1'
 _references = ['He2023']
 
 

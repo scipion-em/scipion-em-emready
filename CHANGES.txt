@@ -1,3 +1,4 @@
+3.0.1 - fix installer
 3.0 - first working version
 Feb 1, 2022:  Initial commit
 
