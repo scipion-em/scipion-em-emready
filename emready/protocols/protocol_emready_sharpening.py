@@ -67,6 +67,18 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                       label="Input volume",
                       help='Provide the input volume to be sharpened.')
 
+        form.addParam('refMask', params.PointerParam, pointerClass='VolumeMask',
+                      default=None,
+                      label='Input mask',
+                      allowsNull=True,
+                      help='Input mask map in MRC2014 format (default: None)')
+
+        form.addParam('refStructure', params.StringParam,
+                      default=None,
+                      label='Input mask in PDB or CIF format',
+                      allowsNull=True,
+                      help='Input structure mask files in PDB or CIF format (default: None)')
+
         form.addParam('batch_size', params.IntParam, default=10,
                       label='Batch size',
                       help="Number of boxes input into EMReady in one batch. "
@@ -78,7 +90,7 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                       label='Stride for sliding window',
                       help="The step of the sliding window for cutting the "
                            "input map into overlapping boxes. Its value "
-                           "should be an integer within [10,40]. The smaller, "
+                           "should be an integer within [12,48]. The smaller, "
                            "the better, if your computer memory is enough.")
 
     # --------------------------- INSERT steps functions ----------------------
@@ -90,19 +102,36 @@ class ProtEMReadySharpening(ProtAnalysis3D):
     def processStep(self):
         inputFn = self.input_vol.get().getFileName()
         mrcFn = os.path.join(self._getTmpPath(), replaceBaseExt(inputFn, 'mrc'))
-
         if getExt(inputFn) != ".mrc":
             ImageHandler().convert(inputFn, mrcFn)
             setMRCSamplingRate(mrcFn, self.input_vol.get().getSamplingRate())
         else:
             createAbsLink(os.path.abspath(inputFn), mrcFn)
 
+        if self.refMask.get() is not None:
+            inputMask = self.refMask.get().getFileName()
+            maskFn = os.path.join(self._getTmpPath(), replaceBaseExt(inputMask, 'mrc'))
+            if getExt(inputMask) != ".mrc":
+                ImageHandler().convert(inputMask, maskFn)
+                setMRCSamplingRate(maskFn, self.refMask.get().getSamplingRate())
+            else:
+                createAbsLink(os.path.abspath(inputMask), maskFn)
+            maskFn = os.path.abspath(maskFn)
+        else:
+            maskFn = 'none'
+
+        refStructure = self.refStructure.get()
+        if refStructure is None:
+            refStructure = 'none'
+
         args = [
             f"-i {os.path.abspath(mrcFn)}",
+            f"-m {maskFn}",
             "-o outputVol.mrc",
+            f"-p {str(refStructure)}",
             f"-b {self.batch_size}",
             f"-s {self.stride}",
-            f"-m {self.getModelDir()}"
+            f"-md {self.getModelDir()}"
         ]
 
         if self.useGpu:

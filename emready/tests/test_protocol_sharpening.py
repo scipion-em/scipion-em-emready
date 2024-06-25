@@ -60,4 +60,4 @@ class TestEMReadySharpening(BaseTest):
             self.assertEqual(expectedDimensions, outputVol.getDim())
             self.assertEqual(1, outputVol.getSamplingRate())
 
-        launchTest(vol=self.inputVol, expectedDimensions=(576, 576, 576))
+        launchTest(vol=self.inputVol, expectedDimensions=(64, 64, 64))
