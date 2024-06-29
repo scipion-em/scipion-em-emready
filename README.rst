@@ -78,7 +78,7 @@ To check the installation, simply run the following Scipion test:
 Supported versions
 ------------------
 
-1.0, 2.0
+2.0
 
 Protocols
 ----------

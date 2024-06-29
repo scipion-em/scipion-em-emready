@@ -80,6 +80,7 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                       help='Input structure mask files in PDB or CIF format (default: None)')
 
         form.addParam('batch_size', params.IntParam, default=10,
+                      validators=[params.Positive],
                       label='Batch size',
                       help="Number of boxes input into EMReady in one batch. "
                            "Users can adjust batch_size according to the VRAM "
@@ -163,8 +164,6 @@ class ProtEMReadySharpening(ProtAnalysis3D):
         errors = []
         if not (12 <= self.stride <= 48):
             errors.append("Stride should be within [12, 48]")
-        if self.batch_size <= 0:
-            errors.append("Batch size should be greater than 0")
 
         return errors
 

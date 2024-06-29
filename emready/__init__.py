@@ -94,7 +94,9 @@ class Plugin(pwem.Plugin):
         installCmd.new()
         installCmd.create(yml='environment.yml')
         installCmd.new(targets='interp3d.cpython-39-x86_64-linux-gnu.so')
-        installCmd.condaInstall('-y -c conda-forge gfortran libxcrypt && export CPATH=$CONDA_PREFIX/include && f2py -c interp3d.f90 -m interp3d')
+        installCmd.condaInstall('-y -c conda-forge gfortran libxcrypt && '
+                                'export CPATH=$CONDA_PREFIX/include && '
+                                'f2py -c interp3d.f90 -m interp3d')
 
         env.addPackage('emready', version=version,
                        commands=installCmd.getCommands(),
