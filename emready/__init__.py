@@ -26,24 +26,29 @@
 
 import os
 import pwem
+from pyworkflow import VarTypes
 from pyworkflow.utils import Environ
 
 from .constants import *
 
-__version__ = '3.0.1'
+__version__ = '3.1.0'
 _references = ['He2023']
 
 
 class Plugin(pwem.Plugin):
     _homeVar = EMREADY_HOME
     _pathVars = [EMREADY_HOME]
-    _supportedVersions = [V1_0]
+    _supportedVersions = [V2_0]
     _url = "https://github.com/scipion-em/scipion-em-emready"
 
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(EMREADY_HOME, f"emready-{DEFAULT_EMREADY_VERSION}")
-        cls._defineVar(EMREADY_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD)
+        cls._defineEmVar(EMREADY_HOME, f"emready-{DEFAULT_EMREADY_VERSION}",
+                         description='Path to the folder where EMReady is located',
+                         var_type=VarTypes.PATH)
+        cls._defineVar(EMREADY_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD,
+                       description='EMReady environment activation command',
+                       var_type=VarTypes.STRING)
 
     @classmethod
     def getEnviron(cls):
@@ -77,24 +82,24 @@ class Plugin(pwem.Plugin):
 
     @classmethod
     def addEMReadyPackage(cls, env, version, default=False):
+        from scipion.install.funcs import CondaCommandDef
         folder = f"emready-{version}"
         ENV_NAME = getEnvName(version)
-        installCmds = [
-            (f'cd .. && rmdir {folder} && '
-             f'wget -c http://huanglab.phys.hust.edu.cn/EMReady/EMReady_v{version}.tgz && '
-             f'tar -xf EMReady_v{version}.tgz && mv EMReady {folder}',
-             ['environment.yml']),
 
-            (f'{cls.getCondaActivationCmd()}'
-             f'conda env create -n {ENV_NAME} -f environment.yml && '
-             f'{cls.getEMReadyEnvActivation()} && conda install -y -c conda-forge gfortran libxcrypt && '
-             'export CPATH=$CONDA_PREFIX/include && '
-             'f2py -c interp3d.f90 -m interp3d',
-             ['interp3d.cpython-38-x86_64-linux-gnu.so']),
-        ]
+        installCmd = CondaCommandDef(ENV_NAME, cls.getCondaActivationCmd())
+        installCmd.append(f'cd .. && rm -rf {folder} && '
+                          f'wget -c http://huanglab.phys.hust.edu.cn/EMReady/v2.0/EMReady_v{version}.tgz && '
+                          f'tar -xf EMReady_v{version}.tgz && mv EMReady_v{version} {folder}',
+                          targets='environment.yml')
+        installCmd.new()
+        installCmd.create(yml='environment.yml')
+        installCmd.new(targets='interp3d.cpython-39-x86_64-linux-gnu.so')
+        installCmd.condaInstall('-y -c conda-forge gfortran libxcrypt && '
+                                'export CPATH=$CONDA_PREFIX/include && '
+                                'f2py -c interp3d.f90 -m interp3d')
 
         env.addPackage('emready', version=version,
-                       commands=installCmds,
+                       commands=installCmd.getCommands(),
                        neededProgs=cls.getDependencies(),
                        tar="void.tgz",
                        default=default)

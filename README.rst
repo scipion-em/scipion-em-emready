@@ -63,10 +63,10 @@ python with conda ones. One example of this could can be seen below but
 depending on your conda version and shell you will need something different:
 CONDA_ACTIVATION_CMD = eval "$(/extra/miniconda3/bin/conda shell.bash hook)"
 
-*EMREADY_ENV_ACTIVATION* (default = conda activate emready-1.0):
+*EMREADY_ENV_ACTIVATION* (default = conda activate emready-2.0):
 Command to activate the EMReady environment.
 
-*EMREADY_HOME* (default = software/em/emready-1.0):
+*EMREADY_HOME* (default = software/em/emready-2.0):
 Path with EMReady source code.
 
 Verifying
@@ -78,7 +78,7 @@ To check the installation, simply run the following Scipion test:
 Supported versions
 ------------------
 
-1.0
+2.0
 
 Protocols
 ----------
