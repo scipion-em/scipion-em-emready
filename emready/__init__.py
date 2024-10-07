@@ -31,7 +31,7 @@ from pyworkflow.utils import Environ
 
 from .constants import *
 
-__version__ = '3.1.0'
+__version__ = '3.1.1'
 _references = ['He2023']
 
 
@@ -83,25 +83,19 @@ class Plugin(pwem.Plugin):
     @classmethod
     def addEMReadyPackage(cls, env, version, default=False):
         from scipion.install.funcs import CondaCommandDef
-        folder = f"emready-{version}"
-        ENV_NAME = getEnvName(version)
 
-        installCmd = CondaCommandDef(ENV_NAME, cls.getCondaActivationCmd())
-        installCmd.append(f'cd .. && rm -rf {folder} && '
-                          f'wget -c http://huanglab.phys.hust.edu.cn/EMReady/v2.0/EMReady_v{version}.tgz && '
-                          f'tar -xf EMReady_v{version}.tgz && mv EMReady_v{version} {folder}',
-                          targets='environment.yml')
+        installCmd = CondaCommandDef(getEnvName(version), cls.getCondaActivationCmd())
         installCmd.new()
         installCmd.create(yml='environment.yml')
         installCmd.new(targets='interp3d.cpython-39-x86_64-linux-gnu.so')
-        installCmd.condaInstall('-y -c conda-forge gfortran libxcrypt && '
+        installCmd.condaInstall('-y -c conda-forge "setuptools<60" gfortran libxcrypt && '
                                 'export CPATH=$CONDA_PREFIX/include && '
                                 'f2py -c interp3d.f90 -m interp3d')
 
         env.addPackage('emready', version=version,
                        commands=installCmd.getCommands(),
                        neededProgs=cls.getDependencies(),
-                       tar="void.tgz",
+                       tar=f"EMReady_v{version}.tgz",
                        default=default)
 
     @classmethod
