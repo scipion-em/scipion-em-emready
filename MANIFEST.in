@@ -7,8 +7,5 @@ include LICENSE
 # Include conf file
 include emready/protocols.conf
 
-# Include the requirement file
-include requirements.txt
-
-# Include the changelog
-include CHANGES.txt
+# Include the changes and requirement file
+include *.txt

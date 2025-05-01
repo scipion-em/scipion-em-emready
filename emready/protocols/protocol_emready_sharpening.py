@@ -96,8 +96,8 @@ class ProtEMReadySharpening(ProtAnalysis3D):
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
-        self._insertFunctionStep(self.processStep)
-        self._insertFunctionStep(self.createOutputStep)
+        self._insertFunctionStep(self.processStep, needsGPU=self.usesGpu())
+        self._insertFunctionStep(self.createOutputStep, needsGPU=False)
 
     # --------------------------- STEPS functions -----------------------------
     def processStep(self):

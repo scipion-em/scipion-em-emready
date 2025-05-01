@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scipion-em-emready"
+dynamic = ["version", "dependencies"]
+description = "EMReady: Improvement of cryo-EM maps by simultaneous local and non-local deep learning"
+authors = [
+    {name = "Scipion Team", email = "scipion@cnb.csic.es"},
+    {name = "Jiahua He", email = "d201880053@hust.edu.cn"},
+    {name = "Tao Li", email = "d202280084@hust.edu.cn"},
+    {name = "Sheng-You Huang", email = "huangsy@hust.edu.cn"}
+]
+requires-python = ">=3.8"
+readme = "README.rst"
+license = {text = "GNU General Public License v3 (GPLv3)"}
+classifiers = [
+    #   3 - Alpha
+    #   4 - Beta
+    #   5 - Production/Stable
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+    "Programming Language :: Python :: 3",
+]
+keywords = ["scipion", "cryoem", "imageprocessing", "scipion-3.0"]
+
+[project.urls]
+Homepage = "https://github.com/scipion-em/scipion-em-emready"
+Issues = "https://github.com/scipion-em/scipion-em-emready/issues"
+
+[tool.setuptools.dynamic]
+version = {attr = "emready.__version__"}
+dependencies = {file = ["requirements.txt"]}
+
+[tool.setuptools.package-data]
+"emready" = ["protocols.conf", "emready_logo.png"]
+
+[project.entry-points."pyworkflow.plugin"]
+emready = "emready"
