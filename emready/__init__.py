@@ -26,7 +26,7 @@
 
 import os
 import pwem
-from pyworkflow import VarTypes
+from pyworkflow import VarTypes, MODELLING
 from pyworkflow.utils import Environ
 
 from .constants import *
@@ -40,6 +40,7 @@ class Plugin(pwem.Plugin):
     _pathVars = [EMREADY_HOME]
     _supportedVersions = [V2_0]
     _url = "https://github.com/scipion-em/scipion-em-emready"
+    _processingField = [MODELLING]
 
     @classmethod
     def _defineVariables(cls):
