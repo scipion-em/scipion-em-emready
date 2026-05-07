@@ -28,17 +28,17 @@ import os
 import pwem
 from pyworkflow import VarTypes, MODELLING
 from pyworkflow.utils import Environ
+from scipion.install.funcs import InstallHelper
 
 from .constants import *
 
 __version__ = '3.1.2'
-_references = ['He2023']
 
 
 class Plugin(pwem.Plugin):
     _homeVar = EMREADY_HOME
     _pathVars = [EMREADY_HOME]
-    _supportedVersions = [V2_0]
+    _supportedVersions = [V1_3]
     _url = "https://github.com/scipion-em/scipion-em-emready"
     _processingField = [MODELLING]
 
@@ -82,22 +82,43 @@ class Plugin(pwem.Plugin):
                                   default=ver == DEFAULT_EMREADY_VERSION)
 
     @classmethod
-    def addEMReadyPackage(cls, env, version, default=False):
-        from scipion.install.funcs import CondaCommandDef
+    def addEMReadyPackage(cls, env, version="1.3", default=True):
+        installer = InstallHelper(
+            "emready",
+            packageHome=cls.getVar(EMREADY_HOME),
+            packageVersion=version
+        )
 
-        installCmd = CondaCommandDef(getEnvName(version), cls.getCondaActivationCmd())
-        installCmd.new()
-        installCmd.create(yml='environment.yml')
-        installCmd.new(targets='interp3d.cpython-39-x86_64-linux-gnu.so')
-        installCmd.condaInstall('-y -c conda-forge "setuptools<60" gfortran libxcrypt && '
-                                'export CPATH=$CONDA_PREFIX/include && '
-                                'f2py -c interp3d.f90 -m interp3d')
+        envName = f"emready-{version}"
 
-        env.addPackage('emready', version=version,
-                       commands=installCmd.getCommands(),
-                       neededProgs=cls.getDependencies(),
-                       tar=f"EMReady_v{version}.tgz",
-                       default=default)
+        installer.addCommand(
+            f"wget -c http://huanglab.phys.hust.edu.cn/EMReady/EMReady_v{version}.tgz",
+            "download_emready"
+        ).addCommand(
+            f"tar -xf EMReady_v{version}.tgz",
+            "extract_emready"
+        )
+
+        installer.addCommand(
+            f"conda env create -f EMReady_v{version}/environment.yml -n {envName}",
+            "create_env"
+        ).addCommand(
+            f"conda install -n {envName} -y -c conda-forge 'setuptools<60' gfortran",
+            "fix_dependencies"
+        ).addCommand(
+            f"cd EMReady_v{version} && "
+            f"conda run -n {envName} bash -c '[ -f interp3d.f90 ] && f2py -c interp3d.f90 -m interp3d || true'",
+            "compile_interp3d"
+        ).addCommand(
+            f"touch EMReady_v{version}/emready_installed",
+            "emready_installed"
+        )
+
+        installer.addPackage(
+            env,
+            dependencies=['conda', 'wget'],
+            default=default
+        )
 
     @classmethod
     def getProgram(cls, program):

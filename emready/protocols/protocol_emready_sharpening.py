@@ -73,11 +73,18 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                       allowsNull=True,
                       help='Input mask map in MRC2014 format (default: None)')
 
+        form.addParam('contour', params.FloatParam, default=0.00,
+                      label='Contour level of the mask',
+                      help=" Set the contour level of the mask. (default: 0.0)")
+
         form.addParam('refStructure', params.StringParam,
                       default=None,
                       label='Input mask in PDB or CIF format',
                       allowsNull=True,
                       help='Input structure mask files in PDB or CIF format (default: None)')
+        form.addParam('radius', params.FloatParam, default=4.00,
+                      label='Zone radius',
+                      help="Zone radius in angstroms (default: 4.0)")
 
         form.addParam('batch_size', params.IntParam, default=10,
                       validators=[params.Positive],
@@ -119,28 +126,31 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                 createAbsLink(os.path.abspath(inputMask), maskFn)
             maskFn = os.path.abspath(maskFn)
         else:
-            maskFn = 'none'
+            maskFn = None
 
         refStructure = self.refStructure.get()
-        if refStructure is None:
-            refStructure = 'none'
 
         args = [
             f"-i {os.path.abspath(mrcFn)}",
-            f"-m {maskFn}",
             "-o outputVol.mrc",
-            f"-p {str(refStructure)}",
             f"-b {self.batch_size}",
             f"-s {self.stride}",
             f"-md {self.getModelDir()}"
         ]
+        if maskFn is not None:
+            args += ["-m", maskFn]
+            args += ["-c", str(self.contour)]
+
+        if refStructure is not None:
+            args += ["-p", refStructure]
+            args += ["-r", str(self.radius)]
 
         if self.useGpu:
             args.append(f'-g {self.gpuList.get().replace(" ", ",")}')
         else:
             args.append("--use_cpu")
 
-        program = Plugin.getHome("pred.py")
+        program = Plugin.getHome("EMReady_v1.3/pred.py")
         self.runJob(Plugin.getProgram(program), " ".join(args),
                     env=Plugin.getEnviron(),
                     cwd=self._getExtraPath())
@@ -178,4 +188,4 @@ class ProtEMReadySharpening(ProtAnalysis3D):
 
     # --------------------------- UTILS functions -----------------------------
     def getModelDir(self):
-        return os.path.abspath(Plugin.getHome(f"model_state_dicts"))
+        return os.path.abspath(Plugin.getHome(f"EMReady_v1.3/model_state_dicts"))
