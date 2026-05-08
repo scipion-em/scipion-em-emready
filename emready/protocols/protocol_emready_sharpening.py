@@ -40,7 +40,159 @@ from .. import Plugin
 
 
 class ProtEMReadySharpening(ProtAnalysis3D):
-    """ Wrapper protocol for EMReady to calculate the sharpened map. """
+    """
+    Sharpens a cryo-EM density map using the EMReady deep-learning framework.
+
+    AI Generated:
+
+    EMReady Sharpening (ProtEMReadySharpening) — User Manual
+        Overview
+
+        The EMReady Sharpening protocol performs local sharpening of cryo-EM density maps
+        using the EMReady deep-learning framework. Its main purpose is to enhance local
+        structural detail and improve the interpretability of reconstructed maps.
+
+        For biological users, this protocol is typically applied after 3D reconstruction,
+        when the map is already available but local regions remain blurred, weak, or
+        difficult to interpret for downstream model building or structural analysis.
+
+        Inputs and General Workflow
+
+        The protocol requires one main input:
+
+        - An input cryo-EM volume.
+
+        Optionally, the protocol can also use:
+
+        - A binary mask volume.
+        - A structure mask in PDB or CIF format.
+
+        During execution, the input map is converted to MRC format if necessary.
+        If a mask is provided, it is also converted to MRC format and prepared
+        for the sharpening run.
+
+        The EMReady prediction program then processes the map using a sliding-window
+        strategy, producing a sharpened output volume.
+
+        Processing Workflow
+
+        The protocol performs the following steps:
+
+        - Converts or links the input map into MRC format.
+        - Converts or links the optional mask into MRC format.
+        - Reads the optional structural mask (PDB or CIF).
+        - Launches the EMReady prediction program.
+        - Produces a sharpened output map named `outputVol.mrc`.
+
+        This wrapper therefore integrates EMReady sharpening directly into the Scipion
+        workflow while preserving compatibility with downstream cryo-EM analysis.
+
+        Sharpening Strategy
+
+        EMReady uses overlapping 3D boxes extracted from the input volume.
+
+        Two parameters control this process:
+
+        Batch size:
+            Defines how many boxes are processed simultaneously.
+            Larger values improve speed but require more GPU memory.
+
+        Stride:
+            Defines the overlap between neighboring boxes.
+            Smaller stride values produce denser local sampling and often
+            smoother sharpening, but increase memory and runtime.
+
+        The stride must remain within the range:
+
+            12 ≤ stride ≤ 48
+
+        From a biological perspective, smaller stride values are usually preferable
+        when preserving fine local features is important.
+
+        GPU and CPU Execution
+
+        The protocol supports both GPU and CPU execution.
+
+        By default, GPU execution is enabled because deep-learning inference
+        is substantially faster on GPUs.
+
+        Multiple GPUs may also be used by specifying several GPU IDs.
+
+        If GPU execution is disabled, the protocol switches to CPU mode,
+        which may be substantially slower for large cryo-EM maps.
+
+        Optional Masks
+
+        Two optional masking strategies can guide sharpening:
+
+        Input mask:
+            A volume mask defining the region of interest.
+
+        Structure mask:
+            A PDB or CIF file used as an additional structural prior.
+
+        Biologically, masking can be particularly useful when sharpening
+        complexes embedded in large solvent regions or when focusing on
+        specific structural domains.
+
+        Output Volume
+
+        The protocol produces one output:
+
+        - A locally sharpened volume.
+
+        The output file is written as:
+
+            outputVol.mrc
+
+        The protocol also adjusts the output sampling rate:
+
+        - If the input pixel size is greater than or equal to 1.0 Å,
+          the output sampling rate is set to 1.0 Å.
+        - If the input pixel size is smaller than 1.0 Å,
+          the output sampling rate is set to 0.5 Å.
+
+        This resampling behavior should be kept in mind when comparing the
+        sharpened map to the original volume or when performing subsequent
+        quantitative analyses.
+
+        Biological Interpretation
+
+        EMReady sharpening is particularly useful when the reconstructed map
+        contains locally weak regions that obscure biologically meaningful
+        structural features.
+
+        Typical downstream applications include:
+
+        - visual inspection of flexible regions,
+        - improved backbone tracing,
+        - improved side-chain visibility,
+        - facilitating atomic model building.
+
+        As with any learned enhancement method, the sharpened map should be
+        interpreted together with the original map rather than as a direct
+        replacement of the experimental density.
+
+        Practical Recommendations
+
+        In routine cryo-EM workflows, a useful strategy is:
+
+        - start with the default stride,
+        - use a moderate batch size adapted to available GPU memory,
+        - provide a mask when solvent or non-target regions dominate the box.
+
+        For very large maps, increasing batch size improves speed if GPU memory allows.
+        For difficult local regions, decreasing stride usually improves local consistency.
+
+        Final Perspective
+
+        EMReady sharpening provides a practical deep-learning-based local enhancement
+        strategy for cryo-EM maps.
+
+        For most structural biology users, its main advantage is improved local
+        interpretability while remaining fully integrated into standard Scipion
+        reconstruction and model-building workflows.
+    """
     _label = 'sharpening'
     _devStatus = BETA
     _OUTNAME = "sharpenedVolume"
