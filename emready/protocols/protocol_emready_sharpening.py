@@ -40,7 +40,126 @@ from .. import Plugin
 
 
 class ProtEMReadySharpening(ProtAnalysis3D):
-    """ Wrapper protocol for EMReady to calculate the sharpened map. """
+    """
+    Enhances cryo-EM density maps by applying local sharpening to improve
+    the visibility of structural features and facilitate biological
+    interpretation of reconstructed volumes.
+
+    AI Generated:
+
+    EMReady Sharpening (ProtEMReadySharpening) — User Manual
+        Overview
+
+        The EMReady Sharpening protocol is designed to improve the local interpretability of cryo-EM
+        density maps by enhancing high-resolution structural detail while preserving the overall
+        integrity of the reconstruction. In practical cryo-EM analysis, reconstructed maps often
+        contain regions of uneven local quality. Flexible domains, solvent-exposed surfaces, and
+        poorly ordered areas may appear blurred even when the global reconstruction reaches good
+        nominal resolution. Local sharpening addresses this limitation by selectively increasing
+        the contrast of meaningful features in different parts of the map.
+
+        For biological users, this protocol is especially useful when preparing a map for visual
+        inspection, atomic model building, structural interpretation, or figure generation.
+        Sharpening often makes helices, strands, loops, side-chain densities, and local boundaries
+        easier to recognize. The goal is not merely aesthetic enhancement but improved structural
+        readability in regions where biologically important details may otherwise remain difficult
+        to identify.
+
+        Inputs and Biological Context
+
+        The protocol requires an input volume representing the cryo-EM reconstruction that will
+        be enhanced. In most workflows, this map is the result of refinement or post-processing,
+        and should already be correctly sampled and centered. The quality of the sharpening depends
+        strongly on the biological quality of the input map. If the map contains severe artifacts,
+        strong masking effects, or major reconstruction errors, sharpening will not recover missing
+        information and may instead emphasize undesirable features.
+
+        Optionally, a mask can be provided. From a biological perspective, this can be extremely
+        useful because it restricts the sharpening process to the molecular region of interest.
+        Excluding solvent noise often improves local stability and reduces the risk of enhancing
+        irrelevant background fluctuations. This becomes particularly important for membrane proteins,
+        flexible assemblies, or complexes embedded in large solvent regions.
+
+        A structural reference in PDB or CIF format may also be supplied. This is especially relevant
+        when prior atomic knowledge exists, for example when refining a known homologous structure,
+        interpreting a partially solved assembly, or guiding enhancement in systems where the
+        experimental density contains uneven local information. The structural reference should be
+        biologically compatible with the map; otherwise, it may bias interpretation rather than
+        improve it.
+
+        Local Sharpening Strategy
+
+        Unlike global sharpening approaches that apply a uniform treatment to the entire map, local
+        sharpening recognizes that different regions of a cryo-EM reconstruction may have very
+        different local resolution or local reliability. A rigid core may contain well-defined
+        secondary structure, while flexible peripheral regions may remain weak or noisy. Treating
+        all regions equally often leads either to over-sharpening of noisy areas or under-sharpening
+        of the most informative ones.
+
+        The local approach is therefore particularly valuable for heterogeneous biological systems.
+        Multi-domain proteins, large ribonucleoprotein assemblies, membrane complexes, and
+        conformationally dynamic particles frequently benefit from this type of adaptive enhancement.
+        In these contexts, sharpening can help reveal biologically relevant conformational boundaries
+        and local architectural organization that may otherwise remain difficult to interpret.
+
+        Batch Size and Computational Considerations
+
+        The protocol processes the map in batches, which primarily affects GPU memory usage.
+        Biologically, batch size does not change the interpretation of the result, but it strongly
+        influences practical execution. Larger batch sizes improve throughput when sufficient GPU
+        memory is available, whereas smaller values are safer for more limited hardware.
+
+        For most users, this parameter is best regarded as a computational control rather than a
+        biological one. If memory limitations are encountered, reducing the batch size is usually
+        the safest strategy. This is especially relevant when working with large box sizes or
+        high-resolution maps.
+
+        Sliding Window and Locality
+
+        A particularly important concept in this protocol is the sliding window strategy used to
+        analyze the map locally. The stride controls how densely neighboring local regions overlap.
+
+        From a biological perspective, smaller stride values generally provide smoother local
+        adaptation and more consistent enhancement across structurally heterogeneous regions. This
+        can be beneficial when studying flexible loops, domain interfaces, or subtle conformational
+        transitions. However, smaller stride values also require more memory and longer runtime.
+
+        Larger stride values reduce computational cost but may produce coarser local adaptation.
+        For exploratory work, moderate default values are usually appropriate. For detailed
+        interpretation of difficult maps, denser local sampling may yield better results.
+
+        Outputs and Interpretation
+
+        The protocol produces a sharpened volume that remains directly linked to the original map
+        and can be used in downstream structural analysis. The output is intended to preserve the
+        biological identity of the reconstruction while improving local contrast and readability.
+
+        The sharpened map is especially useful during atomic model fitting, manual inspection of
+        ambiguous regions, or visual comparison between different structural states. Users should
+        nevertheless interpret the sharpened density carefully. Sharpening improves visibility of
+        existing information but does not create new structural evidence. Features that appear
+        sharper should still be evaluated against the underlying signal quality.
+
+        Practical Recommendations
+
+        In routine cryo-EM work, it is often advisable to begin with the default parameters and
+        inspect whether secondary-structure features become more interpretable without obvious
+        amplification of noise. When solvent noise is substantial, providing a suitable molecular
+        mask often produces the most biologically meaningful improvement.
+
+        When studying flexible systems, local sharpening can substantially improve visualization
+        of domain organization, but users should remain cautious not to over-interpret weak density.
+        If a structural reference is available, it should be used as supportive biological context
+        rather than as a substitute for experimental evidence.
+
+        Final Perspective
+
+        For many cryo-EM users, sharpening represents an essential interpretative step between
+        reconstruction and biological analysis. Its value lies not simply in making maps look
+        clearer, but in making structural information easier to assess, compare, and understand.
+        Careful use of local enhancement, appropriate masking, and biologically sensible parameter
+        choices can substantially improve the reliability of downstream structural interpretation.
+    """
     _label = 'sharpening'
     _devStatus = BETA
     _OUTNAME = "sharpenedVolume"
