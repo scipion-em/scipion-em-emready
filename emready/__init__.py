@@ -129,12 +129,23 @@ class Plugin(pwem.Plugin):
             "install_requirements"
         ).addCommand(
             f"{conda} conda activate {envName} && "
-            f"cd EMReady2 && PIP_NO_BUILD_ISOLATION=1 pip install -r requirements_mamba.txt",
+            f"cd EMReady2 && "
+            f"wget https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.4.0/causal_conv1d-1.4.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl && "
+            f"wget https://github.com/state-spaces/mamba/releases/download/v2.2.0/mamba_ssm-2.2.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl && "
+            f"pip install causal_conv1d-1.4.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl && "
+            f"pip install mamba_ssm-2.2.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl",
             "install_mamba"
         ).addCommand(
             f"{conda} conda activate {envName} && "
             f"cd EMReady2 && pip install -e . --no-deps",
             "install_emready2"
+        ).addCommand(
+            f"{conda} conda activate {envName} && "
+            f"cd EMReady2 && "
+            f"mkdir -p model_weights && "
+            f"wget http://huanglab.phys.hust.edu.cn/EMReady2/model_weights/model_0p6.pt -O model_weights/model_0p6.pt && "
+            f"wget http://huanglab.phys.hust.edu.cn/EMReady2/model_weights/model_1p0.pt -O model_weights/model_1p0.pt",
+            "download_weights"
         )
 
         installer.addPackage(
