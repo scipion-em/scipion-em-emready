@@ -156,5 +156,18 @@ class Plugin(pwem.Plugin):
 
     # ----------------------------------------------------------------------
     @classmethod
-    def getProgram(cls, program):
-        return f'{cls.getCondaActivationCmd()} {cls.getEMReadyEnvActivation()} && python {program}'
+    def runCondaCommand(cls, protocol, args, program, cwd=None, popen=False, silent=True, retOut=False):
+        """ General function to run conda commands """
+        result = None
+        fullProgram = f'{cls.getCondaActivationCmd()} {Plugin.getEMReadyEnvActivation()} && {program}'
+        if not popen and not retOut:
+            protocol.runJob(fullProgram, args, env=cls.getEnviron(), cwd=cwd, numberOfThreads=1)
+        else:
+            if not retOut:
+                kwargs = {}
+                if silent:
+                    kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+                run(fullProgram + args, env=cls.getEnviron(), cwd=cwd, shell=True, **kwargs)
+            else:
+                result = subprocess.check_output(fullProgram + args, cwd=cwd, shell=True, text=True)
+        return result
