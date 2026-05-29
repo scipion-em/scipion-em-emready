@@ -23,37 +23,46 @@
 # *  e-mail address 'scipion@cnb.csic.es'
 # *
 # **************************************************************************
-
 import os
 import pwem
 from pyworkflow import VarTypes, MODELLING
 from pyworkflow.utils import Environ
+from scipion.install.funcs import InstallHelper
 
 from .constants import *
 
-__version__ = '3.1.2'
-_references = ['He2023']
+__version__ = '2.0'
 
 
 class Plugin(pwem.Plugin):
+
     _homeVar = EMREADY_HOME
     _pathVars = [EMREADY_HOME]
-    _supportedVersions = [V2_0]
+    _supportedVersions = [V1_3]
     _url = "https://github.com/scipion-em/scipion-em-emready"
     _processingField = [MODELLING]
 
+    # ----------------------------------------------------------------------
     @classmethod
     def _defineVariables(cls):
-        cls._defineEmVar(EMREADY_HOME, f"emready-{DEFAULT_EMREADY_VERSION}",
-                         description='Path to the folder where EMReady is located',
-                         var_type=VarTypes.PATH)
-        cls._defineVar(EMREADY_ENV_ACTIVATION, DEFAULT_ACTIVATION_CMD,
-                       description='EMReady environment activation command',
-                       var_type=VarTypes.STRING)
 
+        cls._defineEmVar(
+            EMREADY_HOME,
+            f"emready-{DEFAULT_EMREADY_VERSION}",
+            description='Path to the folder where EMReady is located',
+            var_type=VarTypes.PATH
+        )
+
+        cls._defineVar(
+            EMREADY_ENV_ACTIVATION,
+            DEFAULT_ACTIVATION_CMD,
+            description='EMReady environment activation command',
+            var_type=VarTypes.STRING
+        )
+
+    # ----------------------------------------------------------------------
     @classmethod
     def getEnviron(cls):
-        """ Setup the environment variables needed to launch EMReady. """
         environ = Environ(os.environ)
 
         environ.update({
@@ -62,44 +71,103 @@ class Plugin(pwem.Plugin):
 
         return environ
 
+    # ----------------------------------------------------------------------
     @classmethod
     def getEMReadyEnvActivation(cls):
         return cls.getVar(EMREADY_ENV_ACTIVATION)
 
+    # ----------------------------------------------------------------------
     @classmethod
     def getDependencies(cls):
         condaActivationCmd = cls.getCondaActivationCmd()
-        neededProgs = ['wget']
+        neededProgs = ['wget', 'git']
+
         if not condaActivationCmd:
             neededProgs.append('conda')
 
         return neededProgs
 
+    # ----------------------------------------------------------------------
     @classmethod
     def defineBinaries(cls, env):
         for ver in VERSIONS:
-            cls.addEMReadyPackage(env, ver,
-                                  default=ver == DEFAULT_EMREADY_VERSION)
+            cls.addEMReadyPackage(
+                env,
+                ver,
+                default=(ver == DEFAULT_EMREADY_VERSION)
+            )
 
+    # ----------------------------------------------------------------------
     @classmethod
-    def addEMReadyPackage(cls, env, version, default=False):
-        from scipion.install.funcs import CondaCommandDef
+    def addEMReadyPackage(cls, env, version="2.0", default=True):
 
-        installCmd = CondaCommandDef(getEnvName(version), cls.getCondaActivationCmd())
-        installCmd.new()
-        installCmd.create(yml='environment.yml')
-        installCmd.new(targets='interp3d.cpython-39-x86_64-linux-gnu.so')
-        installCmd.condaInstall('-y -c conda-forge "setuptools<60" gfortran libxcrypt && '
-                                'export CPATH=$CONDA_PREFIX/include && '
-                                'f2py -c interp3d.f90 -m interp3d')
+        installer = InstallHelper(
+            "emready",
+            packageHome=cls.getVar(EMREADY_HOME),
+            packageVersion=version
+        )
 
-        env.addPackage('emready', version=version,
-                       commands=installCmd.getCommands(),
-                       neededProgs=cls.getDependencies(),
-                       tar=f"EMReady_v{version}.tgz",
-                       default=default)
+        envName = f"emready-{version}"
+        repoUrl = "https://github.com/huang-laboratory/EMReady2.git"
 
+        conda = cls.getCondaActivationCmd()
+
+        installer.addCommand(
+            f"git clone {repoUrl}",
+            "clone_emready2"
+        ).addCommand(
+            f"{conda} conda create -y -n {envName} python=3.10",
+            "create_env"
+        ).addCommand(
+            f"{conda} conda activate {envName} && "
+            f"pip install torch==2.4.1 torchvision==0.19.1 torchaudio==2.4.1 "
+            f"--index-url https://download.pytorch.org/whl/cu118",
+            "install_torch"
+        ).addCommand(
+            f"{conda} conda activate {envName} && "
+            f"cd EMReady2 && pip install -r requirements.txt",
+            "install_requirements"
+        ).addCommand(
+            f"{conda} conda activate {envName} && "
+            f"cd EMReady2 && "
+            f"wget https://github.com/Dao-AILab/causal-conv1d/releases/download/v1.4.0/causal_conv1d-1.4.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl && "
+            f"wget https://github.com/state-spaces/mamba/releases/download/v2.2.0/mamba_ssm-2.2.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl && "
+            f"pip install causal_conv1d-1.4.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl && "
+            f"pip install mamba_ssm-2.2.0+cu118torch2.4cxx11abiFALSE-cp310-cp310-linux_x86_64.whl",
+            "install_mamba"
+        ).addCommand(
+            f"{conda} conda activate {envName} && "
+            f"cd EMReady2 && pip install -e . --no-deps",
+            "install_emready2"
+        ).addCommand(
+            f"{conda} conda activate {envName} && "
+            f"cd EMReady2 && "
+            f"mkdir -p model_weights && "
+            f"wget http://huanglab.phys.hust.edu.cn/EMReady2/model_weights/model_0p6.pt -O model_weights/model_0p6.pt && "
+            f"wget http://huanglab.phys.hust.edu.cn/EMReady2/model_weights/model_1p0.pt -O model_weights/model_1p0.pt",
+            "download_weights"
+        )
+
+        installer.addPackage(
+            env,
+            dependencies=['git', 'wget', 'conda'],
+            default=default
+        )
+
+    # ----------------------------------------------------------------------
     @classmethod
-    def getProgram(cls, program):
-        """ Returns command line for an EMReady program. """
-        return f'{cls.getCondaActivationCmd()} {cls.getEMReadyEnvActivation()} && python {program}'
+    def runCondaCommand(cls, protocol, args, program, cwd=None, popen=False, silent=True, retOut=False):
+        """ General function to run conda commands """
+        result = None
+        fullProgram = f'{cls.getCondaActivationCmd()} {Plugin.getEMReadyEnvActivation()} && {program}'
+        if not popen and not retOut:
+            protocol.runJob(fullProgram, args, env=cls.getEnviron(), cwd=cwd, numberOfThreads=1)
+        else:
+            if not retOut:
+                kwargs = {}
+                if silent:
+                    kwargs = {"stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL}
+                run(fullProgram + args, env=cls.getEnviron(), cwd=cwd, shell=True, **kwargs)
+            else:
+                result = subprocess.check_output(fullProgram + args, cwd=cwd, shell=True, text=True)
+        return result

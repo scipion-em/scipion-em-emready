@@ -73,11 +73,18 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                       allowsNull=True,
                       help='Input mask map in MRC2014 format (default: None)')
 
+        form.addParam('contour', params.FloatParam, default=0.00,
+                      label='Contour level of the mask',
+                      help=" Set the contour level of the mask. (default: 0.0)")
+
         form.addParam('refStructure', params.StringParam,
                       default=None,
                       label='Input mask in PDB or CIF format',
                       allowsNull=True,
                       help='Input structure mask files in PDB or CIF format (default: None)')
+        form.addParam('radius', params.FloatParam, default=4.00,
+                      label='Zone radius',
+                      help="Zone radius in angstroms (default: 4.0)")
 
         form.addParam('batch_size', params.IntParam, default=10,
                       validators=[params.Positive],
@@ -93,6 +100,17 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                            "input map into overlapping boxes. Its value "
                            "should be an integer within [12,48]. The smaller, "
                            "the better, if your computer memory is enough.")
+
+        form.addParam('blendMode', params.BooleanParam,
+                      default=False,
+                      label='Gaussian patch blending',
+                      help='Patch aggregation mode. Gaussian gives smoother results.')
+
+        form.addParam('gaussianSigma', params.FloatParam,
+                      default=0.5,
+                      condition='blendMode',
+                      label='Gaussian sigma scale',
+                      help='Sigma scale for gaussian blending')
 
     # --------------------------- INSERT steps functions ----------------------
     def _insertAllSteps(self):
@@ -119,31 +137,37 @@ class ProtEMReadySharpening(ProtAnalysis3D):
                 createAbsLink(os.path.abspath(inputMask), maskFn)
             maskFn = os.path.abspath(maskFn)
         else:
-            maskFn = 'none'
+            maskFn = None
 
         refStructure = self.refStructure.get()
-        if refStructure is None:
-            refStructure = 'none'
 
         args = [
-            f"-i {os.path.abspath(mrcFn)}",
-            f"-m {maskFn}",
-            "-o outputVol.mrc",
-            f"-p {str(refStructure)}",
-            f"-b {self.batch_size}",
-            f"-s {self.stride}",
-            f"-md {self.getModelDir()}"
+            f" {os.path.abspath(mrcFn)}",
+            " outputVol.mrc",
+            f"-bb {self.batch_size}",
+            f"-bs {self.stride}"
         ]
+        if maskFn is not None:
+            args += ["-mm", maskFn]
+            args += ["-mc", str(self.contour)]
+
+        if refStructure is not None:
+            args += ["-ms", refStructure]
+            args += ["-mr", str(self.radius)]
 
         if self.useGpu:
-            args.append(f'-g {self.gpuList.get().replace(" ", ",")}')
-        else:
-            args.append("--use_cpu")
+            args.append(f'-bg {self.gpuList.get().replace(" ", ",")}')
 
-        program = Plugin.getHome("pred.py")
-        self.runJob(Plugin.getProgram(program), " ".join(args),
-                    env=Plugin.getEnviron(),
-                    cwd=self._getExtraPath())
+        if self.blendMode:
+            args += ["-bbm", 'gaussian']
+            args += ["-bgs", str(self.gaussianSigma)]
+
+        Plugin.runCondaCommand(
+            self,
+            args=" ".join(args),
+            program="emready",
+            cwd=self._getExtraPath()
+        )
 
     def createOutputStep(self):
         """Return processed map"""
@@ -162,7 +186,7 @@ class ProtEMReadySharpening(ProtAnalysis3D):
     # --------------------------- INFO functions ------------------------------
     def _validate(self):
         errors = []
-        if not (12 <= self.stride <= 48):
+        if not (6 <= self.stride <= 64):
             errors.append("Stride should be within [12, 48]")
 
         return errors
@@ -175,7 +199,3 @@ class ProtEMReadySharpening(ProtAnalysis3D):
             summary.append('We obtained a locally sharpened volume from the %s'
                            % self.getObjectTag('input_vol'))
         return summary
-
-    # --------------------------- UTILS functions -----------------------------
-    def getModelDir(self):
-        return os.path.abspath(Plugin.getHome(f"model_state_dicts"))
